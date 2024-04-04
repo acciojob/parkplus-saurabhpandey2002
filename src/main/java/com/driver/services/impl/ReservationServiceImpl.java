@@ -1,9 +1,6 @@
 package com.driver.services.impl;
 
-import com.driver.model.ParkingLot;
-import com.driver.model.Reservation;
-import com.driver.model.Spot;
-import com.driver.model.User;
+import com.driver.model.*;
 import com.driver.repository.ParkingLotRepository;
 import com.driver.repository.ReservationRepository;
 import com.driver.repository.SpotRepository;
@@ -13,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ReservationServiceImpl implements ReservationService {
@@ -26,55 +24,60 @@ public class ReservationServiceImpl implements ReservationService {
     ParkingLotRepository parkingLotRepository3;
     @Override
     public Reservation reserveSpot(Integer userId, Integer parkingLotId, Integer timeInHours, Integer numberOfWheels) throws Exception {
-        ParkingLot parkingLot=parkingLotRepository3.findById(parkingLotId).get();
-        if(parkingLot==null){
+        //Reserve a spot in the given parkingLot such that the total price is minimum.
+        // Note that the price per hour for each spot is different
+        //Note that the vehicle can only be parked in a spot having a type equal to or larger than given vehicle
+        //If parkingLot is not found, user is not found, or no spot is available, throw "Cannot make reservation" exception.
+
+        User userObj;
+        ParkingLot parkingLotObj;
+        try{
+            userObj = userRepository3.findById(userId).get();
+            parkingLotObj = parkingLotRepository3.findById(parkingLotId).get();
+        }catch(Exception e){
             throw new Exception("Cannot make reservation");
         }
-        User user=userRepository3.findById(userId).get();
-        if(user==null){
-            throw new Exception("Cannot make reservation");
-        }
-        Spot requiredSpot=null;
-        int finalHourPrice=Integer.MAX_VALUE;
-        List<Spot> spotList=parkingLot.getSpotList();
-        for(Spot spot:spotList){
-            if(!spot.getOccupied()){
-                if(numberOfWheels<=2 && finalHourPrice>spot.getPricePerHour()){
-                    finalHourPrice=spot.getPricePerHour();
-                    requiredSpot=spot;
-                }
-                else if(numberOfWheels<=4 && finalHourPrice>spot.getPricePerHour()){
-                    finalHourPrice=spot.getPricePerHour();
-                    requiredSpot=spot;
-                }
-                else{
-                    finalHourPrice=spot.getPricePerHour();
-                    requiredSpot=spot;
-                }
+        List<Spot> spotList = parkingLotObj.getSpotList();
+        Spot spotObj = null;
+        int minCost = Integer.MAX_VALUE;
+        for(Spot spot : spotList){
+            int wheels = 0;
+            if(spot.getSpotType() == SpotType.FOUR_WHEELER){
+                wheels = 4;
+            }else if(spot.getSpotType() == SpotType.TWO_WHEELER){
+                wheels = 2;
+            }else{
+                wheels = 24;
+            }
+            if(!spot.getOccupied() && numberOfWheels <= wheels && (timeInHours * spot.getPricePerHour() < minCost)){
+                spotObj = spot;
+                minCost = timeInHours * spot.getPricePerHour();
             }
         }
-        if(requiredSpot==null){
+
+        if(spotObj == null){
             throw new Exception("Cannot make reservation");
         }
 
-        Reservation reservation=new Reservation();
+        Reservation reservation = new Reservation();
         reservation.setNumberOfHours(timeInHours);
-        reservation.setSpot(requiredSpot);
-        reservation.setUser(user);
+        reservation.setSpot(spotObj);
+        reservation.setUser(userObj);
 
-        List<Reservation> userReservations=user.getReservationList();
-        List<Reservation> spotReservations=requiredSpot.getReservationList();
+        //saved User (Parent Entity)
+        List<Reservation> reservationList = userObj.getReservationList();
+        reservationList.add(reservation);
+        userObj.setReservationList(reservationList);
 
-        userReservations.add(reservation);
-        spotReservations.add(reservation);
-        requiredSpot.setOccupied(true);
+        //saved Spot (Parent Entity)
+        List<Reservation> reservationList2 = spotObj.getReservationList();
+        reservationList2.add(reservation);
+        spotObj.setReservationList(reservationList2);
 
-        user.setReservationList(userReservations);
-        requiredSpot.setReservationList(spotReservations);
-
-        userRepository3.save(user);
-        spotRepository3.save(requiredSpot);
-
+        spotObj.setOccupied(true);
+        userRepository3.save(userObj);
+        spotRepository3.save(spotObj);
+//unka yahi chhiye tha ke  hum ye  dono save kare pata nhi kyu  naki ye => reservation=reservationRepository3.save(reservation);
         return reservation;
 
     }

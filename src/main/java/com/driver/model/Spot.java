@@ -5,37 +5,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name ="spot")
 public class Spot {
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private int id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+    @Enumerated(value = EnumType.STRING)
     private SpotType spotType;
-    private int pricePerHour;
-    private Boolean occupied;
+    private int PricePerHour;
+    private boolean occupied;
+
+
     @ManyToOne
     @JoinColumn
-    private ParkingLot parkingLot;
-    @OneToMany(mappedBy="spot",cascade =CascadeType.ALL)
-    List<Reservation> reservationList;
+    private ParkingLot parkingLot;//it will automatically store id
 
-    public Spot() {
-    }
 
-    public Spot(int id, SpotType spotType, int pricePerHour, Boolean occupied, ParkingLot parkingLot, List<Reservation> reservationList) {
-        this.id = id;
+    @OneToMany(mappedBy = "spot", cascade = CascadeType.ALL)
+    List<Reservation> reservationList = new ArrayList<>();
+    public Spot(SpotType spotType, int pricePerHour, boolean occupied){
         this.spotType = spotType;
-        this.pricePerHour = pricePerHour;
+        PricePerHour = pricePerHour;
         this.occupied = occupied;
-        this.parkingLot = parkingLot;
-        this.reservationList = new ArrayList<>();
+    }
+    public Spot(){
+
     }
 
-    public int getId() {
+    public List<Reservation> getReservationList() {
+        return reservationList;
+    }
+
+    public void setReservationList(List<Reservation> reservationList) {
+        this.reservationList = reservationList;
+    }
+
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -48,18 +56,18 @@ public class Spot {
     }
 
     public int getPricePerHour() {
-        return pricePerHour;
+        return PricePerHour;
     }
 
     public void setPricePerHour(int pricePerHour) {
-        this.pricePerHour = pricePerHour;
+        PricePerHour = pricePerHour;
     }
 
-    public Boolean getOccupied() {
+    public boolean getOccupied() {
         return occupied;
     }
 
-    public void setOccupied(Boolean occupied) {
+    public void setOccupied(boolean occupied) {
         this.occupied = occupied;
     }
 
@@ -69,13 +77,5 @@ public class Spot {
 
     public void setParkingLot(ParkingLot parkingLot) {
         this.parkingLot = parkingLot;
-    }
-
-    public List<Reservation> getReservationList() {
-        return reservationList;
-    }
-
-    public void setReservationList(List<Reservation> reservationList) {
-        this.reservationList = reservationList;
     }
 }
